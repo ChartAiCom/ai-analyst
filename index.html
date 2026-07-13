@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chart Analyst</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161a22;
+            --accent-blue: #00b0ff;
+            --accent-green: #00e676;
+            --text-main: #ffffff;
+            --text-muted: #788293;
+        }
+
+        body {
+            font-family: '-apple-system', BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-selector {
+            flex: 1;
+            padding: 10px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid #242b35;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .help-btn {
+            background: #242b35;
+            color: var(--text-main);
+            border: 1px solid #3a4454;
+            border-radius: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .header-card, .upload-zone, .referral-box {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid #242b35;
+            text-align: center;
+        }
+
+        .header-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+
+        .status-badge {
+            background: rgba(0, 176, 255, 0.1);
+            color: var(--accent-blue);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid rgba(0, 176, 255, 0.2);
+        }
+
+        .upload-zone {
+            border: 2px dashed #2c3545;
+            padding: 32px 16px;
+            cursor: pointer;
+        }
+
+        .upload-icon { font-size: 40px; margin-bottom: 12px; }
+        .upload-zone p { margin: 0 0 4px 0; font-size: 14px; font-weight: bold; }
+        .upload-zone span { color: var(--text-muted); font-size: 12px; }
+
+        .action-btn {
+            background: var(--accent-blue);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .ref-text { font-size: 13px; color: #b3c1d6; margin-bottom: 12px; }
+
+        /* Стили всплывающего окна (Модалка) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #242b35;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 20px;
+            color: var(--text-muted);
+            cursor: pointer;
+            background: none; border: none;
+        }
+
+        .video-placeholder {
+            width: 100%; height: 200px;
+            background: #000;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex; justify-content: center; align-items: center;
+            color: var(--text-muted);
+            border: 1px dashed #3a4454;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="top-bar">
+        <select class="lang-selector" id="lang" onchange="changeLang()">
+            <option value="en">🇬🇧 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="ru">🇷🇺 Русский</option>
+        </select>
+        <button class="help-btn" onclick="openModal()">❓ Tutorial</button>
+    </div>
+
+    <div class="header-card">
+        <div>
+            <h3 style="margin: 0;" id="t-title">AI Analyst v1.0</h3>
+            <span style="color: var(--text-muted); font-size: 12px;">ID: 74920148</span>
+        </div>
+        <div class="status-badge" id="t-trial">7 Days Trial</div>
+    </div>
+
+    <div class="upload-zone">
+        <div class="upload-icon">📸</div>
+        <p id="t-upload-title">Upload chart screenshot</p>
+        <span id="t-upload-desc">Supports RSI, MACD, Candlesticks</span>
+    </div>
+
+    <div class="referral-box">
+        <p class="ref-text" id="t-ref-text">Invite 3 friends and get +3 days of unlimited AI analysis for free!</p>
+        <button class="action-btn" style="background: transparent; color: var(--accent-blue); border: 1px solid var(--accent-blue);" id="t-ref-btn">
+            Invite Friends
+        </button>
+    </div>
+
+    <button class="action-btn" id="t-sub-btn">Extend Unlimited ($29 / mo)</button>
+
+</div>
+
+<!-- Всплывающее окно с инструкцией -->
+<div class="modal-overlay" id="instructionModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeModal()">×</button>
+        <h3 style="margin-top: 0; color: var(--text-main);">How to use AI Analyst</h3>
+        <p style="font-size: 14px; color: var(--text-muted);">Watch this quick 30-second guide to make your first profit.</p>
+        <!-- Сюда потом вставишь iframe с YouTube/Vimeo или тег <video> -->
+        <div class="video-placeholder">
+            ▶ Video will be here
+        </div>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const translations = {
+        en: {
+            title: "AI Analyst v1.0",
+            trial: "7 Days Trial",
+            uploadTitle: "Upload chart screenshot",
+            uploadDesc: "Supports RSI, MACD, Candlesticks",
+            refText: "Invite 3 friends and get +3 days of unlimited AI analysis for free!",
+            refBtn: "Invite Friends",
+            subBtn: "Extend Unlimited ($29 / mo)"
+        },
+        es: {
+            title: "Analista de IA v1.0",
+            trial: "Prueba de 7 Días",
+            uploadTitle: "Subir captura del gráfico",
+            uploadDesc: "Soporta RSI, MACD, Velas",
+            refText: "¡Invita a 3 amigos y obtén +3 días de análisis de IA ilimitado gratis!",
+            refBtn: "Invitar Amigos",
+            subBtn: "Renovar Ilimitado ($29 / mes)"
+        },
+        ru: {
+            title: "ИИ Аналитик v1.0",
+            trial: "7 Дней Триала",
+            uploadTitle: "Загрузить скриншот графика",
+            uploadDesc: "Поддержка RSI, MACD, Свечей",
+            refText: "Пригласи 3 друзей и получи +3 дня безлимитного ИИ-анализа бесплатно!",
+            refBtn: "Пригласить Друзей",
+            subBtn: "Продлить безлимит ($29 / мес)"
+        }
+    };
+
+    function changeLang() {
+        const lang = document.getElementById('lang').value;
+        const t = translations[lang];
+
+        document.getElementById('t-title').innerText = t.title;
+        document.getElementById('t-trial').innerText = t.trial;
+        document.getElementById('t-upload-title').innerText = t.uploadTitle;
+        document.getElementById('t-upload-desc').innerText = t.uploadDesc;
+        document.getElementById('t-ref-text').innerText = t.refText;
+        document.getElementById('t-ref-btn').innerText = t.refBtn;
+        document.getElementById('t-sub-btn').innerText = t.subBtn;
+    }
+
+    function openModal() {
+        document.getElementById('instructionModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('instructionModal').style.display = 'none';
+    }
+
+    window.onload = () => {
+        let userLang = tg.initDataUnsafe?.user?.language_code || 'en';
+        if (!translations[userLang]) userLang = 'en'; 
+        document.getElementById('lang').value = userLang;
+        changeLang();
+    };
+</script>
+</body>
+</html>
