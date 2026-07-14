@@ -90,20 +90,40 @@
             font-size: 13px;
         }
 
-        /* Upload Zone */
+        /* ОБНОВЛЕННАЯ КНОПКА ЗАГРУЗКИ */
+        .upload-container {
+            position: relative;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
         .upload-zone {
             border: 2px dashed #313e50;
             border-radius: 16px;
             padding: 30px 15px;
-            margin-bottom: 20px;
-            cursor: pointer;
+            background: transparent;
             transition: all 0.2s ease;
+            pointer-events: none; /* Пропускает клики сквозь себя на инпут */
             position: relative;
+            z-index: 1;
         }
 
-        .upload-zone:active {
+        /* Настоящий, рабочий инпут. Растянут на всю область кнопки, но абсолютно невидим */
+        .real-file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10; /* Находится на самом верху, перехватывая физический клик */
+        }
+
+        .upload-container:active .upload-zone {
             transform: scale(0.98);
             border-color: var(--accent-blue);
+            background: rgba(0, 162, 255, 0.02);
         }
 
         .upload-icon {
@@ -121,11 +141,6 @@
         .upload-sub {
             font-size: 11px;
             color: var(--text-muted);
-        }
-
-        /* Hidden File Input */
-        #file-input {
-            display: none;
         }
 
         /* Status & Analysis Card */
@@ -265,7 +280,6 @@
 <body>
 
     <div class="app-container">
-        <!-- Header -->
         <div class="header">
             <select class="lang-select" id="lang-select">
                 <option value="en">🇬🇧 English</option>
@@ -275,33 +289,28 @@
             <span class="badge-trial">7 Days Trial</span>
         </div>
 
-        <!-- Title -->
         <div class="title-block">
             <h1>AI Analyst v1.0</h1>
             <p id="user-id">ID: Loading...</p>
         </div>
 
-        <!-- Upload Zone -->
-        <div class="upload-zone" id="upload-btn">
-            <span class="upload-icon">📸</span>
-            <div class="upload-text">Upload chart screenshot</div>
-            <div class="upload-sub">Supports RSI, MACD, Candlesticks</div>
+        <div class="upload-container" id="upload-container">
+            <input type="file" class="real-file-input" id="file-input" accept="image/*">
+            
+            <div class="upload-zone">
+                <span class="upload-icon">📸</span>
+                <div class="upload-text">Upload chart screenshot</div>
+                <div class="upload-sub">Camera snapshot or Photo Library</div>
+            </div>
         </div>
 
-        <!-- Hidden input for Camera / Gallery -->
-        <input type="file" id="file-input" accept="image/*">
-
-        <!-- Analysis / Loading / Result Card -->
         <div class="analysis-card" id="analysis-card">
-            <!-- Dynamic content will be injected here -->
-        </div>
+            </div>
 
-        <!-- Referral promo -->
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.3;">
             Invite 3 friends and get +3 days of unlimited AI analysis for free!
         </p>
 
-        <!-- Actions -->
         <button class="btn-invite" id="btn-invite">Invite Friends</button>
         <button class="btn-buy" id="btn-buy">Extend Unlimited ($29 / mo)</button>
     </div>
@@ -313,23 +322,17 @@
             tg.expand(); // Разворачиваем на весь экран
             tg.ready();
             
-            // Генерируем красивый ID на основе реального TG id или рандома
             const userId = tg.initDataUnsafe?.user?.id || Math.floor(1000000 + Math.random() * 9000000);
             document.getElementById('user-id').innerText = `ID: ${userId}`;
         } else {
             document.getElementById('user-id').innerText = `ID: 74920148`;
         }
 
-        const uploadBtn = document.getElementById('upload-btn');
+        const uploadContainer = document.getElementById('upload-container');
         const fileInput = document.getElementById('file-input');
         const analysisCard = document.getElementById('analysis-card');
 
-        // Клик по зоне загрузки открывает системный выбор Камера / Галерея
-        uploadBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        // Обработка выбранного файла
+        // Обработка выбранного файла (срабатывает сразу после выбора из галереи или фото)
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 startAnalysisFlow();
@@ -338,8 +341,7 @@
 
         // Функция симуляции анализа
         async function startAnalysisFlow() {
-            // Прячем кнопку загрузки, показываем карточку анализа
-            uploadBtn.style.display = 'none';
+            uploadContainer.style.display = 'none';
             analysisCard.style.display = 'block';
             analysisCard.innerHTML = `
                 <div style="text-align: center; padding: 10px 0;">
@@ -370,10 +372,9 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // Вывод случайного результата (сигнал или реалистичные ошибки)
+        // Вывод случайного результата (сигнал или ошибки)
         function showRandomResult() {
             const outcomes = [
-                // 1. Сигнал CALL
                 `
                 <div class="signal-result">
                     <div class="signal-badge call">📈 CALL (BUY)</div>
@@ -384,7 +385,6 @@
                     <p class="signal-descr"><strong>AI Conclusion:</strong> 'Double Bottom' pattern confirmed on support levels. RSI indicator shows solid bullish divergence in the oversold zone.</p>
                 </div>
                 `,
-                // 2. Сигнал PUT
                 `
                 <div class="signal-result">
                     <div class="signal-badge put">📉 PUT (SELL)</div>
@@ -395,7 +395,6 @@
                     <p class="signal-descr"><strong>AI Conclusion:</strong> Strong price rejection at critical resistance level. MACD lines bearish crossover detected. Volume decreasing.</p>
                 </div>
                 `,
-                // 3. Ошибка: Размытое фото
                 `
                 <div class="signal-result">
                     <div class="signal-badge error">⚠️ RESOLUTION ERROR</div>
@@ -405,7 +404,6 @@
                     </div>
                 </div>
                 `,
-                // 4. Ошибка: Нет таймфрейма
                 `
                 <div class="signal-result">
                     <div class="signal-badge error">⚠️ TIMEFRAME ERROR</div>
@@ -415,7 +413,6 @@
                     </div>
                 </div>
                 `,
-                // 5. Ошибка: Нет индикаторов
                 `
                 <div class="signal-result">
                     <div class="signal-badge error">⚠️ INDICATORS MISSING</div>
@@ -430,23 +427,22 @@
             const randomOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
             analysisCard.innerHTML = randomOutcome;
 
-            // Добавляем кнопку "Проверить другой график" внизу результата
             const resetBtn = document.createElement('button');
             resetBtn.className = 'btn-invite';
             resetBtn.style.marginTop = '15px';
             resetBtn.innerText = 'Analyze Another Chart';
             resetBtn.onclick = () => {
-                uploadBtn.style.display = 'block';
+                uploadContainer.style.display = 'block';
                 analysisCard.style.display = 'none';
-                fileInput.value = ''; // сброс файла
+                fileInput.value = '';
             };
             analysisCard.appendChild(resetBtn);
         }
 
-        // Кнопка "Invite Friends" - вызывает нативный TG share
+        // Кнопка "Invite Friends"
         document.getElementById('btn-invite').addEventListener('click', () => {
             if (tg) {
-                const botUsername = "ИМЯ_ТВОЕГО_БОТА"; // Например, ChartAnalystBot
+                const botUsername = "AI_Analyst_Bot"; // Замени на юзернейм своего бота без @
                 const refLink = `https://t.me/${botUsername}?start=ref_${tg.initDataUnsafe?.user?.id || 123456}`;
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent("Check out this crazy AI that scans and analyzes chart screenshots on the go! 🔥")}`);
             } else {
